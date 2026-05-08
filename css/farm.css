@@ -1,0 +1,413 @@
+.fields-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.field {
+  position: relative;
+  border-radius: 16px;
+  padding: 14px;
+  /* 上部=空、中段=水面(ピクセル波模様)、下部=土 */
+  background:
+    /* 田畔(下端の盛り土) */
+    linear-gradient(180deg, transparent 88%, #6b4a25 88%, #5a3d1d 100%),
+    /* 水面の模様: 横方向の小さなドット */
+    repeating-linear-gradient(90deg,
+      rgba(255,255,255,0.15) 0 2px,
+      transparent 2px 6px,
+      rgba(255,255,255,0.08) 6px 8px,
+      transparent 8px 14px
+    ),
+    /* 水面のグラデーション */
+    linear-gradient(180deg,
+      #c5e7ff 0%,    /* 空 */
+      #a4d6f3 22%,   /* 空〜水際 */
+      #6fa8c9 30%,   /* 水面 */
+      #5b8fae 60%,   /* 水深 */
+      #4d7e9c 88%    /* 田の底 */
+    );
+  background-size: 100% 100%, 100% 8px, 100% 100%;
+  background-position: 0 0, 0 35%, 0 0;
+  image-rendering: pixelated;
+  min-height: 200px;
+  overflow: hidden;
+  border: 2px solid #2e6a25;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.2), 0 4px 0 #1f4717;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.field::after {
+  /* 水面のキラキラ（小さなドット） */
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  top: 32%; height: 14%;
+  background:
+    radial-gradient(circle 1px at 20% 30%, rgba(255,255,255,0.7) 50%, transparent 50%),
+    radial-gradient(circle 1px at 60% 70%, rgba(255,255,255,0.6) 50%, transparent 50%),
+    radial-gradient(circle 1px at 85% 40%, rgba(255,255,255,0.5) 50%, transparent 50%),
+    radial-gradient(circle 1px at 35% 85%, rgba(255,255,255,0.6) 50%, transparent 50%);
+  pointer-events: none;
+  opacity: 0.7;
+}
+.field:hover { transform: translateY(-2px); }
+.field.locked {
+  background: repeating-linear-gradient(45deg, #d6cfb1, #d6cfb1 8px, #c7c0a0 8px, #c7c0a0 16px);
+  border-color: #8a8262;
+  box-shadow: 0 4px 0 #5e5944;
+  cursor: default;
+}
+.field.active { outline: 3px solid #f59e0b; outline-offset: 3px; }
+.field.harvestable {
+  animation: harvest-glow 2s ease-in-out infinite;
+}
+
+.field-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  z-index: 2;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  font-size: 13px;
+  font-weight: 600;
+}
+.field-no { background: rgba(0,0,0,0.35); padding: 2px 8px; border-radius: 999px; }
+.field-stage { background: rgba(0,0,0,0.35); padding: 2px 8px; border-radius: 999px; }
+
+.field-art {
+  position: absolute;
+  inset: 38% 0 14% 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  z-index: 1;
+}
+
+.rice-stalk {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.25));
+  animation: sway 3s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+.rice-stalk.pixel-rice {
+  display: inline-block;
+}
+.rice-stalk.pixel-rice svg {
+  width: 36px;
+  height: 36px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3));
+}
+.rice-stalk.s2 { animation-duration: 2.6s; }
+.rice-stalk.s3 { animation-duration: 3.4s; }
+
+.field-footer {
+  position: absolute;
+  bottom: 8px;
+  left: 12px;
+  right: 12px;
+  z-index: 2;
+}
+
+.field-upgrades {
+  position: absolute;
+  top: 32px;
+  right: 8px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-end;
+}
+.field-up-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+}
+.field-up-badge sup {
+  font-size: 9px;
+  margin-left: 1px;
+  color: #fde890;
+}
+.field-footer .progress { background: rgba(0,0,0,0.35); border: none; }
+.field-footer .progress > .bar { background: linear-gradient(90deg, #fde68a, #fbbf24); }
+.field-footer .label {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  font-size: 11px;
+  margin-top: 4px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.field .event-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.event-rain { background: linear-gradient(180deg, rgba(120,170,220,0.0), rgba(120,170,220,0.4)); }
+.event-rain::before {
+  content: "";
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(180deg, rgba(255,255,255,0.5) 0 1px, transparent 1px 7px);
+  animation: rain-fall 0.5s linear infinite;
+}
+.event-typhoon::before {
+  content: "🌀";
+  position: absolute;
+  top: 30%; left: 50%; transform: translate(-50%, -50%);
+  font-size: 64px;
+  animation: spin 1.6s linear infinite;
+  opacity: 0.6;
+}
+.event-sunny::before {
+  content: "☀️";
+  position: absolute;
+  top: 8px; right: 8px;
+  font-size: 28px;
+  animation: pulse 2s ease-in-out infinite;
+}
+.event-pest::before {
+  content: "🐛";
+  position: absolute;
+  top: 40%; left: 20%;
+  font-size: 22px;
+  animation: bug-walk 4s ease-in-out infinite;
+}
+.event-disease::before {
+  content: "🍂";
+  position: absolute;
+  bottom: 30%; right: 20%;
+  font-size: 22px;
+  animation: pulse 2s ease-in-out infinite;
+}
+.event-leaf-blast::before {
+  content: "🍂🍂";
+  position: absolute;
+  top: 35%; left: 20%; right: 20%;
+  font-size: 18px;
+  text-align: center;
+  animation: pulse 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 4px rgba(120, 60, 0, 0.8));
+}
+.event-panicle-blast::before {
+  content: "💀";
+  position: absolute;
+  top: 30%; right: 15%;
+  font-size: 24px;
+  animation: pulse 1.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 4px rgba(50, 0, 0, 0.8));
+}
+.event-panicle-blast::after {
+  content: "🌾";
+  position: absolute;
+  top: 40%; right: 20%;
+  font-size: 18px;
+  filter: grayscale(0.7) brightness(0.7);
+}
+.event-cool::before {
+  content: "❄️";
+  position: absolute;
+  top: 8px; left: 8px;
+  font-size: 22px;
+  animation: pulse 2.5s ease-in-out infinite;
+}
+.event-heat::before {
+  content: "🔥";
+  position: absolute;
+  top: 8px; left: 8px;
+  font-size: 22px;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+.event-drought::before {
+  content: "🥵";
+  position: absolute;
+  bottom: 30%; left: 30%;
+  font-size: 24px;
+}
+.event-weeds::before {
+  content: "🌿🌿🌿";
+  position: absolute;
+  bottom: 0;
+  left: 0; right: 0;
+  font-size: 18px;
+  text-align: center;
+}
+
+.field.locked .lock-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  font-size: 13px;
+  color: #4a4530;
+  font-weight: 600;
+  text-align: center;
+  padding: 16px;
+}
+.field.locked .lock-overlay .padlock { font-size: 36px; margin-bottom: 6px; }
+
+.farm-detail-panel {
+  margin-top: 16px;
+}
+.variety-pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.variety-card {
+  border: 1px solid #e6dfc4;
+  background: #fffdf7;
+  border-radius: 10px;
+  padding: 10px;
+  text-align: left;
+  position: relative;
+  font-size: 13px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.variety-card.locked { opacity: 0.4; cursor: not-allowed; }
+.variety-card:not(.locked):hover { border-color: #2f7d32; background: #f4fbf4; }
+.variety-card .name { font-weight: 700; font-size: 14px; }
+.variety-card .stats { color: #6b5a1e; font-size: 11px; margin-top: 4px; }
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+.shop-card {
+  border: 1px solid #e6dfc4;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.shop-card .icon { font-size: 36px; text-align: center; }
+.shop-card .name { font-weight: 700; }
+.shop-card .desc { font-size: 12px; color: #6b5a1e; flex: 1; }
+.shop-card .price { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+.collection-card {
+  border: 1px solid #e6dfc4;
+  border-radius: 10px;
+  padding: 10px;
+  background: #fff;
+  text-align: center;
+  font-size: 13px;
+  position: relative;
+  min-height: 120px;
+}
+.collection-card.locked { background: #ece8d6; color: #94886a; }
+.collection-card .ico { font-size: 32px; margin-bottom: 4px; }
+.collection-card .name { font-weight: 700; }
+.collection-card .desc { font-size: 11px; color: #6b5a1e; margin-top: 4px; }
+
+.quiz-card {
+  text-align: center;
+  padding: 24px 18px;
+}
+.quiz-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #94886a;
+  margin-bottom: 12px;
+}
+.quiz-en {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2f5d2f;
+  margin: 14px 0;
+  letter-spacing: 0.02em;
+}
+.quiz-pos { font-size: 14px; color: #6b5a1e; font-style: italic; margin-bottom: 6px; }
+.quiz-example {
+  font-size: 13px;
+  color: #6b5a1e;
+  background: #fff8df;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 12px auto 18px;
+  max-width: 480px;
+}
+.quiz-result {
+  margin-top: 14px;
+  font-size: 14px;
+  min-height: 24px;
+}
+.quiz-result.correct { color: #2f7d32; font-weight: 700; }
+.quiz-result.wrong { color: #c2410c; font-weight: 700; }
+
+.input-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 14px;
+}
+.input-row input {
+  flex: 1;
+  max-width: 320px;
+  padding: 12px 14px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 2px solid #e6dfc4;
+  background: #fff;
+}
+.input-row input:focus { border-color: #2f7d32; outline: none; }
+
+.title-screen {
+  text-align: center;
+  padding: 32px 16px;
+}
+.title-screen h1 { font-size: 32px; color: #2f5d2f; margin-bottom: 8px; }
+.title-screen .tagline { color: #6b5a1e; margin-bottom: 28px; font-size: 15px; }
+.title-screen .quick-stats {
+  display: inline-grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 16px;
+  background: #fff8df;
+  border: 1px solid #e6dfc4;
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-bottom: 24px;
+  font-size: 13px;
+}
+.title-screen .quick-stats div { text-align: center; }
+.title-screen .quick-stats .num { font-size: 20px; font-weight: 700; color: #2f5d2f; }
+
+.kbd {
+  display: inline-block;
+  background: #fff8df;
+  border: 1px solid #cbb878;
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: #5a4a18;
+  font-family: ui-monospace, monospace;
+  margin: 0 2px;
+}

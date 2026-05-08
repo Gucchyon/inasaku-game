@@ -1,0 +1,28 @@
+# PyInstaller のビルド成果物
+build/
+dist/
+*.spec.bak
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Node (将来 Capacitor を使うとき用)
+node_modules/
+.npm/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# 一時
+*.log
+*.tmp
+*~
