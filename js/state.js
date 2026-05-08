@@ -31,7 +31,7 @@ window.State = (function () {
       activePdfFocus: null,// 集中モードで対象とするPDF id
       inventory: { fertilizer_basic: 1, omusubi: 1 },
       collection: {
-        varieties: { koshihikari: { unlocked: true, harvests: 0 } },
+        varieties: { asagiri: { unlocked: true, harvests: 0 } },
         achievements: {}
       },
       srs: {},

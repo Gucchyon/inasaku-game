@@ -36,9 +36,9 @@ window.ACHIEVEMENTS = [
   { id: "first_harvest", name: "初収穫", icon: "🌾", desc: "初めて収穫する。",
     condition: s => s.fields.some(f => f.harvestCount > 0), reward: { grain: 100 } },
   { id: "harvest_5", name: "5回の実り", icon: "🌾", desc: "通算5回収穫。",
-    condition: s => totalHarvests(s) >= 5, reward: { grain: 250, varietyId: "tsuyahime" } },
+    condition: s => totalHarvests(s) >= 5, reward: { grain: 250, varietyId: "gekka" } },
   { id: "harvest_10", name: "10回の実り", icon: "🌾", desc: "通算10回収穫。",
-    condition: s => totalHarvests(s) >= 10, reward: { grain: 500, varietyId: "yumepirika" } },
+    condition: s => totalHarvests(s) >= 10, reward: { grain: 500, varietyId: "setsurei" } },
   { id: "harvest_25", name: "25回の実り", icon: "🌾", desc: "通算25回収穫。",
     condition: s => totalHarvests(s) >= 25, reward: { grain: 1500 } },
   { id: "harvest_50", name: "豊穣の達人", icon: "🌾✨", desc: "通算50回収穫。",
@@ -54,7 +54,7 @@ window.ACHIEVEMENTS = [
   { id: "varieties_20", name: "20品種コレクター", icon: "🎴✨", desc: "20品種を解放。",
     condition: s => Object.values(s.collection.varieties || {}).filter(v => v.unlocked).length >= 20, reward: { grain: 2000 } },
   { id: "ancient_master", name: "古代米マスター", icon: "🏺", desc: "古代米を5種解放。",
-    condition: s => countGroup(s, "ancient") >= 5, reward: { grain: 1000, varietyId: "kandaho" } },
+    condition: s => countGroup(s, "ancient") >= 5, reward: { grain: 1000, varietyId: "shinkaho" } },
   { id: "world_master", name: "世界の米", icon: "🌍", desc: "海外品種を5種解放。",
     condition: s => countGroup(s, "world") >= 5, reward: { grain: 1500 } },
 
@@ -87,7 +87,7 @@ window.ACHIEVEMENTS = [
       return total > 0 && correct === total;
     }, reward: { grain: 5000 } },
   { id: "legendary_farmer", name: "伝説の農夫", icon: "👑", desc: "通算100回収穫。",
-    condition: s => totalHarvests(s) >= 100, reward: { grain: 10000, varietyId: "horaimai" } },
+    condition: s => totalHarvests(s) >= 100, reward: { grain: 10000, varietyId: "senkyo" } },
   { id: "all_master", name: "全制覇", icon: "🏆", desc: "他のアチーブメントを20個以上解放。",
     condition: s => Object.keys(s.collection.achievements || {}).length >= 20, reward: { grain: 10000, varietyId: "shinwanoine" } }
 ];
