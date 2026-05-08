@@ -106,8 +106,7 @@
       },
       {
         title: "6️⃣ 論文を取り込む(任意)",
-        html: `<p style="line-height:1.7;"><strong>📄 論文</strong>からPDFをアップすると、その論文に出てくる作物学用語を集中的にクイズで覚えられます。</p>
-               <p style="line-height:1.7; margin-top:6px;">日本作物学会紀事・国際誌・教科書から <strong>1300語以上</strong> を出典付きで収録。</p>`
+        html: `<p style="line-height:1.7;"><strong>📄 論文</strong>からPDFをアップすると、その論文に出てくる作物学用語を集中的にクイズで覚えられます。</p>`
       },
       {
         title: "✅ 準備完了",

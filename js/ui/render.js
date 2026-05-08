@@ -47,8 +47,6 @@ window.UI = (function () {
         </ul>
         <h4 style="margin-top:10px;">プレステージ報酬（自動）</h4>
         <p>累計問題数・収穫数で永続効果が解放されます。詳細はショップの「🛠️ アップグレード」→ 累計実績ボーナス で確認。</p>
-        <h4 style="margin-top:10px;">学術的根拠</h4>
-        <p>語彙データは日本作物学会紀事・教科書・国際誌から出典付きで収録しています。図鑑画面で詳細を確認できます。</p>
 
         <h4 style="margin-top:14px; color:#6b5a1e;">📜 免責 (品種について)</h4>
         <p style="font-size:12px; color:#6b5a1e; line-height:1.6;">
