@@ -62,8 +62,12 @@ window.ShopView = (function () {
   }
 
   function renderUpgrades(container) {
+    // UpgradeView.render(container) は container.innerHTML="" でクリアするため、
+    // 専用のサブコンテナを作って渡す（タブが消えないように）
     if (window.UpgradeView && window.UpgradeView.render) {
-      window.UpgradeView.render(container);
+      const sub = document.createElement("div");
+      container.appendChild(sub);
+      window.UpgradeView.render(sub);
     } else {
       const empty = document.createElement("div");
       empty.className = "empty";

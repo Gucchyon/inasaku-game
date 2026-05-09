@@ -2,6 +2,14 @@
 window.Quiz = (function () {
   // 簡易Leitner: 5ボックス
   const BOX_WEIGHT = { 1: 5, 2: 3, 3: 2, 4: 1, 5: 0.5 };
+  // 例文(English example)を持つ語の出題確率を底上げする倍率。
+  // ユーザー要望「なるべく出題には英文例を付ける」を反映。
+  const EXAMPLE_BOOST = 10;
+
+  // 例文を持っているか (空文字や undefined は false)
+  function hasExample(word) {
+    return !!(word && word.example && String(word.example).trim().length > 0);
+  }
 
   function pickNext() {
     const s = State.get();
@@ -19,10 +27,12 @@ window.Quiz = (function () {
       }
     }
 
-    // 未出題語(SRSに無い)を優先5枠
+    // 未出題語(SRSに無い)を優先5枠 — 例文付きの未出題語があればそちらを優先
     const unseen = allWords.filter(w => !s.srs[w.id]);
     if (unseen.length > 0 && Math.random() < 0.35) {
-      return unseen[Math.floor(Math.random() * unseen.length)];
+      const unseenWithExample = unseen.filter(hasExample);
+      const pool = unseenWithExample.length > 0 ? unseenWithExample : unseen;
+      return pool[Math.floor(Math.random() * pool.length)];
     }
 
     const now = Date.now();
@@ -39,6 +49,8 @@ window.Quiz = (function () {
         const wrongBoost = r.lastResult === "wrong" ? 1.8 : 1.0;
         weight = baseW * recency * wrongBoost;
       }
+      // 例文付きの語を強く優先 (ユーザー要望)
+      if (hasExample(w)) weight *= EXAMPLE_BOOST;
       return { w, weight };
     });
 

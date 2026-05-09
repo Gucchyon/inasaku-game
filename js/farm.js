@@ -37,30 +37,14 @@ window.Farm = (function () {
   }
 
   // 1問あたりの成長計算
-  // 戻り値: { gpGain, grainDrop, comboBefore, comboAfter, fieldEvent: null|{...} }
+  // 戻り値: { gpGain, grainDrop, comboSaved, fieldEvent, fieldResults: [{fieldId, gpGain, grainDrop, newStage}] }
+  // 仕様: 1問正解で植えられている全ての田んぼが同時に成長する。
   function applyAnswer(isCorrect, difficulty) {
     const s = State.get();
-    const field = getActiveField();
-    if (!field || !field.varietyId) {
-      // 田植え前なら統計だけ
-      State.set(state => {
-        state.player.totalQuestions++;
-        if (isCorrect) {
-          state.player.totalCorrect++;
-          state.player.currentCombo++;
-          state.player.bestCombo = Math.max(state.player.bestCombo, state.player.currentCombo);
-        } else {
-          state.player.currentCombo = 0;
-        }
-        return state;
-      });
-      return { gpGain: 0, grainDrop: 0, fieldEvent: null };
-    }
+    const plantedFields = s.fields.filter(f => f.unlocked && f.varietyId);
 
-    let gpGain = 0;
-    let grainDrop = 0;
+    // === コンボ・統計の更新 (1問につき1度のみ) ===
     let comboSaved = false;
-
     State.set(state => {
       state.player.totalQuestions++;
       if (isCorrect) {
@@ -70,7 +54,7 @@ window.Farm = (function () {
           state.player.bestCombo = state.player.currentCombo;
         }
       } else {
-        // おむすびでコンボ保護
+        // おむすびでコンボ保護 (1問につき1回)
         if (state.inventory.omusubi && state.inventory.omusubi > 0 && state.player.currentCombo >= 5) {
           state.inventory.omusubi--;
           comboSaved = true;
@@ -81,76 +65,100 @@ window.Farm = (function () {
       return state;
     });
 
-    // GP計算
-    if (isCorrect) {
-      const baseGP = (window.BALANCE && window.BALANCE.GP.base) || 10;
-      const combo = State.get().player.currentCombo;
-      const comboLimit = (window.Upgrades && window.Upgrades.getComboLimit) ? window.Upgrades.getComboLimit() : 20;
-      const comboMult = 1 + Math.min(combo, comboLimit) * 0.05;
-      // 難易度ボーナス + 知識アップグレード
-      const knowledgeBonus = (window.Upgrades && window.Upgrades.getKnowledgeBonus) ? window.Upgrades.getKnowledgeBonus() : 0;
-      const baseDiffBonus = difficulty === 3 ? 1.5 : difficulty === 2 ? 1.2 : 1.0;
-      const diffBonus = baseDiffBonus + knowledgeBonus;
-      const buffMult = computeBuffMult(field);
-      const eventMult = computeEventGpMult(field);
-      const eventOffset = computeEventGpOffset(field);
-      // 田アップグレード（肥沃度）
-      const fieldUpMult = (window.Upgrades && window.Upgrades.getFieldGpMultiplier) ? window.Upgrades.getFieldGpMultiplier(field) : 1;
-      // プレステージ（累計1000問以上でGP+10%等）
-      const playerUpMult = (window.Upgrades && window.Upgrades.getPlayerGpMultiplier) ? window.Upgrades.getPlayerGpMultiplier() : 1;
-      gpGain = Math.floor(baseGP * comboMult * diffBonus * buffMult * eventMult * fieldUpMult * playerUpMult) + eventOffset;
-      gpGain = Math.max(gpGain, 0);
-
-      // 米粒ドロップ (バランス値 BALANCE.GRAIN を参照)
-      const dropBase = (window.BALANCE && window.BALANCE.GRAIN.dropBase) || 0.1;
-      const chanceLuckyDrop = (window.BALANCE && window.BALANCE.GRAIN.chanceLuckyDrop) || 0.1;
-      grainDrop = Math.floor(gpGain * dropBase);
-      if (Math.random() < chanceLuckyDrop) grainDrop += 1 + Math.floor(combo / 5);
-    } else {
-      // 不正解時のペナルティイベント
-      const ev = field.activeEvent;
-      if (ev && ev.effectType === "wrong_penalty") {
-        gpGain = ev.penaltyGP || 0;
-      }
+    if (plantedFields.length === 0) {
+      // 田植え前は統計のみ更新して終わり
+      return { gpGain: 0, grainDrop: 0, fieldEvent: null, fieldResults: [], comboSaved };
     }
 
-    // 状態適用
-    let newStage = 0;
-    let triggeredEvent = null;
-    State.set(state => {
-      const f = state.fields.find(x => x.id === field.id);
-      if (!f) return state;
-      f.growthPoints = Math.max(0, (f.growthPoints || 0) + gpGain);
-      f.stage = computeStage(f.growthPoints);
-      newStage = f.stage;
+    // === 各田んぼについてGP / 米粒を計算 (バフ・イベントは田毎に異なる) ===
+    const combo = State.get().player.currentCombo;
+    const baseGP = (window.BALANCE && window.BALANCE.GP.base) || 10;
+    const comboLimit = (window.Upgrades && window.Upgrades.getComboLimit) ? window.Upgrades.getComboLimit() : 20;
+    const comboMult = 1 + Math.min(combo, comboLimit) * 0.05;
+    const knowledgeBonus = (window.Upgrades && window.Upgrades.getKnowledgeBonus) ? window.Upgrades.getKnowledgeBonus() : 0;
+    const baseDiffBonus = difficulty === 3 ? 1.5 : difficulty === 2 ? 1.2 : 1.0;
+    const diffBonus = baseDiffBonus + knowledgeBonus;
+    const playerUpMult = (window.Upgrades && window.Upgrades.getPlayerGpMultiplier) ? window.Upgrades.getPlayerGpMultiplier() : 1;
+    const dropBase = (window.BALANCE && window.BALANCE.GRAIN.dropBase) || 0.1;
+    const chanceLuckyDrop = (window.BALANCE && window.BALANCE.GRAIN.chanceLuckyDrop) || 0.1;
 
-      // バフのカウントダウン
-      if (f.activeBuffs && f.activeBuffs.length) {
-        f.activeBuffs.forEach(b => { if (b.questions != null) b.questions--; });
-        f.activeBuffs = f.activeBuffs.filter(b => b.questions == null || b.questions > 0);
-      }
-      // イベントのカウントダウン（持続効果のみ）
-      if (f.activeEvent && f.activeEvent.questionsLeft != null) {
-        f.activeEvent.questionsLeft--;
-        if (f.activeEvent.questionsLeft <= 0 && !f.activeEvent.persistent) {
-          f.activeEvent = null;
+    const fieldResults = plantedFields.map(field => {
+      let gpGain = 0;
+      let grainDrop = 0;
+      if (isCorrect) {
+        const buffMult = computeBuffMult(field);
+        const eventMult = computeEventGpMult(field);
+        const eventOffset = computeEventGpOffset(field);
+        const fieldUpMult = (window.Upgrades && window.Upgrades.getFieldGpMultiplier) ? window.Upgrades.getFieldGpMultiplier(field) : 1;
+        gpGain = Math.floor(baseGP * comboMult * diffBonus * buffMult * eventMult * fieldUpMult * playerUpMult) + eventOffset;
+        gpGain = Math.max(gpGain, 0);
+        // 米粒は田毎にロール
+        grainDrop = Math.floor(gpGain * dropBase);
+        if (Math.random() < chanceLuckyDrop) grainDrop += 1 + Math.floor(combo / 5);
+      } else {
+        // 不正解時のペナルティイベント (田固有)
+        const ev = field.activeEvent;
+        if (ev && ev.effectType === "wrong_penalty") {
+          gpGain = ev.penaltyGP || 0;
         }
       }
+      return { fieldId: field.id, gpGain, grainDrop };
+    });
 
-      f.questionsSinceEvent = (f.questionsSinceEvent || 0) + 1;
+    // === 状態適用 ===
+    let totalGpGain = 0;
+    let totalGrainDrop = 0;
+    State.set(state => {
+      for (const r of fieldResults) {
+        const f = state.fields.find(x => x.id === r.fieldId);
+        if (!f) continue;
+        f.growthPoints = Math.max(0, (f.growthPoints || 0) + r.gpGain);
+        f.stage = computeStage(f.growthPoints);
+        r.newStage = f.stage;
 
-      state.player.totalGP += Math.max(0, gpGain);
-      state.player.grain += grainDrop;
-      state.player.lifetimeGrain = (state.player.lifetimeGrain || 0) + grainDrop;
+        // バフのカウントダウン (田毎)
+        if (f.activeBuffs && f.activeBuffs.length) {
+          f.activeBuffs.forEach(b => { if (b.questions != null) b.questions--; });
+          f.activeBuffs = f.activeBuffs.filter(b => b.questions == null || b.questions > 0);
+        }
+        // イベントのカウントダウン
+        if (f.activeEvent && f.activeEvent.questionsLeft != null) {
+          f.activeEvent.questionsLeft--;
+          if (f.activeEvent.questionsLeft <= 0 && !f.activeEvent.persistent) {
+            f.activeEvent = null;
+          }
+        }
+        f.questionsSinceEvent = (f.questionsSinceEvent || 0) + 1;
+
+        totalGpGain += Math.max(0, r.gpGain);
+        totalGrainDrop += r.grainDrop;
+      }
+      state.player.totalGP += totalGpGain;
+      state.player.grain += totalGrainDrop;
+      state.player.lifetimeGrain = (state.player.lifetimeGrain || 0) + totalGrainDrop;
       return state;
     });
 
-    // 5問ごとにイベント抽選（events.js の関数）
-    if (window.Events && getActiveField().questionsSinceEvent >= 5) {
-      triggeredEvent = window.Events.rollEvent(field.id);
+    // === イベント抽選 (各田、5問経過していれば) ===
+    // 一画面の混乱を避けるため、表示は最初に発生した1件のみ。残りは背景でstateに反映済。
+    let triggeredEvent = null;
+    if (window.Events) {
+      for (const r of fieldResults) {
+        const field = State.get().fields.find(f => f.id === r.fieldId);
+        if (field && field.questionsSinceEvent >= 5) {
+          const ev = window.Events.rollEvent(r.fieldId);
+          if (ev && !triggeredEvent) triggeredEvent = ev;
+        }
+      }
     }
 
-    return { gpGain, grainDrop, fieldEvent: triggeredEvent, comboSaved, newStage };
+    return {
+      gpGain: totalGpGain,
+      grainDrop: totalGrainDrop,
+      fieldEvent: triggeredEvent,
+      comboSaved,
+      fieldResults
+    };
   }
 
   function computeStage(gp) {

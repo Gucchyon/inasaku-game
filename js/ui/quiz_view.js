@@ -31,11 +31,12 @@ window.QuizView = (function () {
       }
     }
 
-    // 田植え必須チェック
-    const field = window.Farm.getActiveField();
+    // 田植え必須チェック (1問正解で全植え田が同時に育つ)
+    const allFields = State.get().fields;
+    const planted = allFields.filter(f => f.unlocked && f.varietyId);
     const fieldHint = document.createElement("div");
     fieldHint.className = "card";
-    if (!field || !field.varietyId) {
+    if (planted.length === 0) {
       fieldHint.innerHTML = `
         <div style="text-align:center;">
           <div style="font-size:38px; margin-bottom:8px;">🌱</div>
@@ -44,22 +45,27 @@ window.QuizView = (function () {
         </div>`;
       container.appendChild(fieldHint);
     } else {
-      const variety = window.VARIETIES.find(v => v.id === field.varietyId);
-      const stage = field.stage || 0;
-      const nextThr = window.Farm.STAGE_THRESHOLDS[Math.min(stage + 1, 5)] || 380;
-      const prevThr = window.Farm.STAGE_THRESHOLDS[stage] || 0;
-      const span = Math.max(1, nextThr - prevThr);
-      const into = field.growthPoints - prevThr;
-      const pct = Math.min(100, Math.max(0, (into / span) * 100));
-      fieldHint.innerHTML = `
-        <div style="display:flex; align-items:center; gap:12px;">
-          <div style="font-size:32px;">${window.Farm.STAGE_ICONS[stage]}</div>
-          <div style="flex:1;">
-            <div style="font-weight:700;">田${field.id}: ${variety ? variety.name : "?"} <span class="badge rarity-${variety ? variety.rarity : "N"}">${variety ? variety.rarity : ""}</span></div>
-            <div style="font-size:12px; color:#6b5a1e; margin:2px 0 6px;">${window.Farm.STAGE_NAMES[stage]} (GP ${field.growthPoints}/${nextThr})</div>
-            <div class="progress"><div class="bar" style="width:${pct}%"></div></div>
-          </div>
-        </div>`;
+      const header = `<div style="font-size:12px; color:#6b5a1e; margin-bottom:6px;">🌾 1問正解で${planted.length > 1 ? `<strong>${planted.length}枚の田んぼが同時に</strong>` : ""}育ちます</div>`;
+      const rows = planted.map(field => {
+        const variety = window.VARIETIES.find(v => v.id === field.varietyId);
+        const stage = field.stage || 0;
+        const nextThr = window.Farm.STAGE_THRESHOLDS[Math.min(stage + 1, 5)] || 380;
+        const prevThr = window.Farm.STAGE_THRESHOLDS[stage] || 0;
+        const span = Math.max(1, nextThr - prevThr);
+        const into = field.growthPoints - prevThr;
+        const pct = Math.min(100, Math.max(0, (into / span) * 100));
+        const eventBadge = field.activeEvent ? `<span title="${escapeHTML(field.activeEvent.name)}" style="margin-left:4px;">${field.activeEvent.icon}</span>` : "";
+        return `
+          <div style="display:flex; align-items:center; gap:10px; padding:6px 0;">
+            <div style="font-size:24px; flex-shrink:0;">${window.Farm.STAGE_ICONS[stage]}</div>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:700;">田${field.id}: ${variety ? variety.name : "?"}${eventBadge} <span class="badge rarity-${variety ? variety.rarity : "N"}" style="font-size:10px;">${variety ? variety.rarity : ""}</span></div>
+              <div style="font-size:11px; color:#6b5a1e;">${window.Farm.STAGE_NAMES[stage]} ・ ${field.growthPoints}/${nextThr} GP${stage >= 5 ? " ・ <strong style='color:#c2410c'>収穫可!</strong>" : ""}</div>
+              <div class="progress" style="margin-top:3px;"><div class="bar" style="width:${pct}%"></div></div>
+            </div>
+          </div>`;
+      }).join("");
+      fieldHint.innerHTML = header + rows;
       container.appendChild(fieldHint);
     }
 
