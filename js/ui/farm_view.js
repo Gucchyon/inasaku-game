@@ -173,8 +173,10 @@ window.FarmView = (function () {
     info.style.fontSize = "13px";
     info.style.color = "#4a4a3f";
     info.style.marginBottom = "10px";
+    const stageDesc = (window.Farm.STAGE_DESCRIPTIONS && window.Farm.STAGE_DESCRIPTIONS[stage]) || "";
     info.innerHTML = `
       <div>段階: <strong>${window.Farm.STAGE_NAMES[stage]}</strong> (${field.growthPoints} GP)</div>
+      ${stageDesc ? `<div style="font-size:12px; color:#6b5a1e; padding:6px 10px; background:#fff8df; border-left:3px solid #2f7d32; border-radius:4px; margin:6px 0; line-height:1.5;">📖 ${stageDesc}</div>` : ""}
       <div>収穫回数: ${field.harvestCount || 0}</div>
       ${field.activeEvent ? `<div style="color:${field.activeEvent.kind === 'positive' ? '#2f7d32' : '#c2410c'}; margin-top:4px;">${field.activeEvent.icon} ${field.activeEvent.name} ${field.activeEvent.questionsLeft != null ? `(残${field.activeEvent.questionsLeft}問)` : "（持続中）"}</div>` : ""}
       ${field.activeBuffs && field.activeBuffs.length ? `<div style="color:#2f7d32; margin-top:4px;">バフ: ${field.activeBuffs.map(b => b.type === "buff_gp" ? `肥料×${b.multiplier}(${b.questions ?? "?"}問)` : "予防済").join(", ")}</div>` : ""}

@@ -1,9 +1,19 @@
 // 田んぼ・成長・収穫
 window.Farm = (function () {
-  // 段階閾値（GP累計）
+  // 段階閾値（GP累計） — 関川村テキスト・大阪府手引きの段階区分に準拠
   const STAGE_THRESHOLDS = [0, 30, 80, 160, 260, 380];
-  const STAGE_NAMES = ["種", "苗", "分げつ", "出穂", "登熟", "収穫可"];
+  // 正式な生育段階名 (教科書準拠)
+  const STAGE_NAMES = ["播種期", "苗期", "分げつ期", "出穂期", "登熟期", "成熟期"];
   const STAGE_ICONS = ["🌰", "🌱", "🌿", "🌾", "🌾", "🌾✨"];
+  // 各段階の簡単な解説 (図鑑・ヒント表示用)
+  const STAGE_DESCRIPTIONS = [
+    "播種・出芽期。種子が水分と温度を得て発芽する段階。",
+    "苗期。緑化期・硬化期を経て移植可能な苗となる。",
+    "分げつ期。茎数が増え、最高分げつ期を迎えると中干しを開始。",
+    "出穂期。穂が止葉から抽出し、開花・受精が始まる。",
+    "登熟期。乳熟・糊熟・黄熟を経て籾が充実する。",
+    "成熟期。穂の根元に1〜1.5割の帯緑色籾が残る頃が収穫適期。"
+  ];
 
   function getActiveField() {
     const s = State.get();
@@ -314,7 +324,7 @@ window.Farm = (function () {
   }
 
   return {
-    STAGE_NAMES, STAGE_ICONS, STAGE_THRESHOLDS,
+    STAGE_NAMES, STAGE_ICONS, STAGE_THRESHOLDS, STAGE_DESCRIPTIONS,
     getActiveField, setActiveField, plant, applyAnswer,
     isHarvestable, harvest, applyItem, checkFieldUnlocks
   };
