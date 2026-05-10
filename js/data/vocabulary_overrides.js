@@ -113,7 +113,16 @@
     "rice": { ja: ["イネ", "米", "稲"], altJa: ["いね", "こめ"] },
     "paddy": { ja: ["水田"], altJa: ["すいでん"] },
     "agronomy": { ja: ["作物学", "農学"], altJa: ["さくもつがく", "のうがく"] },
-    "crop rotation": { ja: ["輪作"], altJa: ["りんさく"] }
+    "crop rotation": { ja: ["輪作"], altJa: ["りんさく"] },
+
+    // === MAFF 教科書 (suitou-2.pdf) 準拠の精緻化 ===
+    "maximum tillering stage": { ja: ["最高分げつ期"], altJa: ["さいこうぶんげつき"] },
+    "soil reduction": { ja: ["土壌還元"], altJa: ["どじょうかんげん"] },
+    "rooting": { ja: ["活着"], altJa: ["かっちゃく"] },
+    "establishment": { ja: ["活着"], altJa: ["かっちゃく"] },
+    "yellow ripe stage": { ja: ["黄熟期"], altJa: ["おうじゅくき"] },
+    "deep water management": { ja: ["深水管理"], altJa: ["ふかみずかんり"] },
+    "shallow water management": { ja: ["浅水管理"], altJa: ["あさみずかんり"] }
   };
 
   // 適用

@@ -174,8 +174,22 @@ window.FarmView = (function () {
     info.style.color = "#4a4a3f";
     info.style.marginBottom = "10px";
     const stageDesc = (window.Farm.STAGE_DESCRIPTIONS && window.Farm.STAGE_DESCRIPTIONS[stage]) || "";
+    // 登熟期 (4) と成熟期 (5) では黄化籾割合を推定して表示
+    let yellowGrainBadge = "";
+    if (stage === 4) {
+      const stageStart = window.Farm.STAGE_THRESHOLDS[4];
+      const stageEnd = window.Farm.STAGE_THRESHOLDS[5];
+      const into = Math.max(0, field.growthPoints - stageStart);
+      const span = Math.max(1, stageEnd - stageStart);
+      const pct = Math.min(1, into / span);
+      const yellowRate = Math.round(65 + pct * 20); // 65→85%
+      yellowGrainBadge = `<div style="display:inline-block; background:#fbbf24; color:#4a2c00; padding:3px 10px; border-radius:6px; font-size:12px; margin-top:4px; font-weight:700;">🌾 黄化籾割合: 約${yellowRate}%</div>`;
+    } else if (stage === 5) {
+      yellowGrainBadge = `<div style="display:inline-block; background:#d4af37; color:#fff; padding:3px 10px; border-radius:6px; font-size:12px; margin-top:4px; font-weight:700;">🌾 黄化籾割合 85-90% — 収穫適期</div>`;
+    }
     info.innerHTML = `
       <div>段階: <strong>${window.Farm.STAGE_NAMES[stage]}</strong> (${field.growthPoints} GP)</div>
+      ${yellowGrainBadge}
       ${stageDesc ? `<div style="font-size:12px; color:#6b5a1e; padding:6px 10px; background:#fff8df; border-left:3px solid #2f7d32; border-radius:4px; margin:6px 0; line-height:1.5;">📖 ${stageDesc}</div>` : ""}
       <div>収穫回数: ${field.harvestCount || 0}</div>
       ${field.activeEvent ? `<div style="color:${field.activeEvent.kind === 'positive' ? '#2f7d32' : '#c2410c'}; margin-top:4px;">${field.activeEvent.icon} ${field.activeEvent.name} ${field.activeEvent.questionsLeft != null ? `(残${field.activeEvent.questionsLeft}問)` : "（持続中）"}</div>` : ""}
