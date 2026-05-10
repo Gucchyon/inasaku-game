@@ -207,9 +207,39 @@ window.Farm = (function () {
     return field && field.varietyId && field.stage >= 5;
   }
 
+  // 検査等級判定 (品質スコアから)
+  // 1.0  → 1等米 (×1.00)
+  // 0.85 → 2等米 (×0.85)
+  // 0.65 → 3等米 (×0.70)
+  // <0.5 → 規格外 (×0.50)
+  function computeGrade(qualityScore) {
+    if (qualityScore >= 0.95) return { rank: 1, label: "1等米", multiplier: 1.00, color: "#d4af37", note: "整粒歩合・水分・着色粒すべて基準内" };
+    if (qualityScore >= 0.80) return { rank: 2, label: "2等米", multiplier: 0.85, color: "#a08820", note: "やや品質劣るが流通可能" };
+    if (qualityScore >= 0.60) return { rank: 3, label: "3等米", multiplier: 0.70, color: "#8a6d28", note: "品質低下が顕著、業務用主体" };
+    return { rank: 4, label: "規格外", multiplier: 0.50, color: "#c2410c", note: "検査基準を満たさず大幅減収" };
+  }
+
+  // 収量構成要素を品種ベースで擬似生成 (表示用)
+  // 収量(kg/10a) ≒ 穂数/m² × 1穂籾数 × 登熟歩合 × 千粒重(g) ÷ 1000 × 10
+  // ゲームの基本収量を逆算的に「もっともらしい構成要素」で説明する
+  function decomposeYield(baseYield, qualityScore, midSeasonDried, panicleDressed) {
+    // baseYield 80 → 約 540 kg/10a 程度に対応すると仮定
+    // 大まかに変動させる
+    const variety = baseYield;
+    const panicleNumber = Math.round(360 + (variety - 80) * 0.5 + (midSeasonDried ? 20 : 0));
+    const grainsPerPanicle = Math.round(75 + (variety - 80) * 0.3 + (panicleDressed ? 8 : 0));
+    const ripeningRate = Math.max(0.65, Math.min(0.95, 0.88 * qualityScore + 0.03));
+    const thousandGrainWeight = Math.round((21 + (variety - 80) * 0.05) * 10) / 10;
+    return {
+      panicleNumber,             // 穂数 /m²
+      grainsPerPanicle,          // 1穂籾数
+      ripeningRate,              // 登熟歩合 (0-1)
+      thousandGrainWeight        // 千粒重 (g)
+    };
+  }
+
   function harvest(fieldId) {
-    let yieldAmount = 0;
-    let varietyId = null;
+    let result = null;
     State.set(s => {
       const f = s.fields.find(x => x.id === fieldId);
       if (!f || !isHarvestable(f)) return s;
@@ -218,26 +248,40 @@ window.Farm = (function () {
 
       let base = variety.baseYield;
       let yieldMod = 1;
-      let qualityMod = 1;
-      let qualityLabel = null;
+      let qualityScore = 1;
+      const qualityLabels = [];
+
       // イベントによる収量・品質補正
       if (f.activeEvent && f.activeEvent.effectType === "yield_penalty") {
         yieldMod -= f.activeEvent.value || 0;
+        qualityLabels.push(`${f.activeEvent.icon} ${f.activeEvent.name} 収量-${Math.round((f.activeEvent.value||0)*100)}%`);
       }
       if (f.activeEvent && f.activeEvent.effectType === "quality_penalty") {
-        qualityMod -= f.activeEvent.value || 0;
-        qualityLabel = f.activeEvent.qualityLabel || "品質劣化";
+        qualityScore -= f.activeEvent.value || 0;
+        qualityLabels.push(`${f.activeEvent.icon} ${f.activeEvent.qualityLabel || f.activeEvent.name}`);
       }
-      // 品質劣化は検査等級下落として収量金額に反映（数量は減らないが米粒換金額が下がる）
-      // 鎌の品質＋プレステージによる収量倍率
+      // 中干し効果: 品質+5%
+      if (f.midSeasonDried) {
+        qualityScore = Math.min(1.0, qualityScore + 0.05);
+        qualityLabels.push("✅ 中干し実施 (品質+5%)");
+      }
+      // 穂肥効果: 収量+10%
+      if (f.panicleDressed) {
+        yieldMod += 0.10;
+        qualityLabels.push("✅ 穂肥施用 (収量+10%)");
+      }
+
+      // 検査等級判定
+      const grade = computeGrade(qualityScore);
       const yieldMult = (window.Upgrades && window.Upgrades.getYieldMultiplier) ? window.Upgrades.getYieldMultiplier() : 1;
-      yieldAmount = Math.max(0, Math.floor(base * yieldMod * qualityMod * yieldMult));
+      const yieldAmount = Math.max(0, Math.floor(base * yieldMod * grade.multiplier * yieldMult));
+
+      // 収量構成要素 (表示用)
+      const components = decomposeYield(base, qualityScore, f.midSeasonDried, f.panicleDressed);
 
       s.player.grain += yieldAmount;
       s.player.lifetimeGrain = (s.player.lifetimeGrain || 0) + yieldAmount;
-
       f.harvestCount = (f.harvestCount || 0) + 1;
-      varietyId = f.varietyId;
 
       // 品種コレクション更新
       if (!s.collection.varieties[variety.id]) {
@@ -250,6 +294,26 @@ window.Farm = (function () {
         s.flags.typhoon_survived = true;
       }
 
+      // 等級別フラグ (アチーブメント用)
+      if (grade.rank === 1) s.flags.grade_1 = (s.flags.grade_1 || 0) + 1;
+      if (grade.rank === 4) s.flags.grade_substandard = (s.flags.grade_substandard || 0) + 1;
+      // 栽培アクション実施フラグ
+      if (f.midSeasonDried) s.flags.midseason_done = true;
+      if (f.panicleDressed) s.flags.panicle_done = true;
+
+      result = {
+        yield: yieldAmount,
+        varietyId: f.varietyId,
+        varietyName: variety.name,
+        grade,
+        qualityScore,
+        qualityLabels,
+        components,
+        baseYield: base,
+        yieldMod,
+        yieldMult
+      };
+
       // 田んぼリセット
       f.varietyId = null;
       f.growthPoints = 0;
@@ -258,13 +322,56 @@ window.Farm = (function () {
       f.activeBuffs = [];
       f.activeEvent = null;
       f.questionsSinceEvent = 0;
+      f.midSeasonDried = false;
+      f.panicleDressed = false;
 
       return s;
     });
 
     // 田んぼ拡張アンロック判定
     checkFieldUnlocks();
-    return { yield: yieldAmount, varietyId };
+    return result || { yield: 0, varietyId: null };
+  }
+
+  // 中干し実行 (分げつ期 stage=2 で利用可能、1回のみ)
+  function applyMidSeasonDrying(fieldId) {
+    const s = State.get();
+    const f = s.fields.find(x => x.id === fieldId);
+    if (!f || !f.varietyId) return { ok: false, reason: "no_field" };
+    if (f.stage !== 2) return { ok: false, reason: "wrong_stage" };
+    if (f.midSeasonDried) return { ok: false, reason: "already_done" };
+    State.set(state => {
+      const target = state.fields.find(x => x.id === fieldId);
+      target.midSeasonDried = true;
+      // 雑草・病害イベントの解除と一時的な耐性 (5問)
+      if (target.activeEvent && (target.activeEvent.id === "weeds" || target.activeEvent.id === "leaf_blast")) {
+        target.activeEvent = null;
+      }
+      target.activeBuffs = target.activeBuffs || [];
+      target.activeBuffs.push({ type: "buff_gp", multiplier: 1.15, questions: 5, fromAction: "mid_season_drying" });
+      return state;
+    });
+    return { ok: true };
+  }
+
+  // 穂肥施用 (出穂期 stage=3 で利用可能、1回のみ、米粒30消費)
+  function applyPanicleDressing(fieldId) {
+    const s = State.get();
+    const f = s.fields.find(x => x.id === fieldId);
+    if (!f || !f.varietyId) return { ok: false, reason: "no_field" };
+    if (f.stage !== 3) return { ok: false, reason: "wrong_stage" };
+    if (f.panicleDressed) return { ok: false, reason: "already_done" };
+    if (s.player.grain < 30) return { ok: false, reason: "no_grain" };
+    State.set(state => {
+      const target = state.fields.find(x => x.id === fieldId);
+      target.panicleDressed = true;
+      state.player.grain -= 30;
+      // GP獲得倍率を一時的に強化 (8問)
+      target.activeBuffs = target.activeBuffs || [];
+      target.activeBuffs.push({ type: "buff_gp", multiplier: 1.20, questions: 8, fromAction: "panicle_dressing" });
+      return state;
+    });
+    return { ok: true, paid: 30 };
   }
 
   function checkFieldUnlocks() {
@@ -326,6 +433,7 @@ window.Farm = (function () {
   return {
     STAGE_NAMES, STAGE_ICONS, STAGE_THRESHOLDS, STAGE_DESCRIPTIONS,
     getActiveField, setActiveField, plant, applyAnswer,
-    isHarvestable, harvest, applyItem, checkFieldUnlocks
+    isHarvestable, harvest, applyItem, checkFieldUnlocks,
+    applyMidSeasonDrying, applyPanicleDressing, computeGrade, decomposeYield
   };
 })();

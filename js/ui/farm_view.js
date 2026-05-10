@@ -196,13 +196,10 @@ window.FarmView = (function () {
         const result = window.Farm.harvest(field.id);
         window.AchievementsMod.checkAll();
         window.Shop.checkVarietyUnlocks();
-        window.Toast.show(`🍚 +${result.yield} 収穫!`, "harvest");
         if (window.Prestige) window.Prestige.checkAndCelebrate();
         window.Storage.scheduleSave(State.get());
-        if (window.UI) {
-          window.UI.refreshTopbar();
-          window.UI.show("farm");
-        }
+        // 収穫結果モーダル (等級・構成要素・収量内訳)
+        showHarvestModal(result);
       });
       btnRow.appendChild(harvestBtn);
     } else {
@@ -211,6 +208,59 @@ window.FarmView = (function () {
       goQuiz.textContent = "📖 クイズで育てる";
       goQuiz.addEventListener("click", () => window.UI.show("quiz"));
       btnRow.appendChild(goQuiz);
+
+      // 中干しボタン (分げつ期のみ、1回のみ)
+      if (stage === 2 && !field.midSeasonDried) {
+        const midBtn = document.createElement("button");
+        midBtn.className = "btn secondary";
+        midBtn.innerHTML = "💧 中干し開始";
+        midBtn.title = "目標穂数の80%確保時に田面を一時的に乾かす作業。雑草・病害を抑制し品質を向上。";
+        midBtn.addEventListener("click", () => {
+          const r = window.Farm.applyMidSeasonDrying(field.id);
+          if (r.ok) {
+            window.Toast.show("💧 中干しを開始 (5問GP×1.15)", "event");
+            window.Storage.scheduleSave(State.get());
+            if (window.UI) window.UI.show("farm");
+          } else {
+            window.Toast.show(r.reason === "wrong_stage" ? "分げつ期のみ実施可" : "実施できません", "warn");
+          }
+        });
+        btnRow.appendChild(midBtn);
+      } else if (field.midSeasonDried) {
+        const doneBadge = document.createElement("span");
+        doneBadge.className = "badge";
+        doneBadge.style.cssText = "background:#e8f5e9; color:#2f5d2f; padding:6px 10px;";
+        doneBadge.textContent = "✅ 中干し済";
+        btnRow.appendChild(doneBadge);
+      }
+
+      // 穂肥ボタン (出穂期のみ、1回のみ、米粒30消費)
+      if (stage === 3 && !field.panicleDressed) {
+        const panBtn = document.createElement("button");
+        panBtn.className = "btn secondary";
+        panBtn.innerHTML = "🌾 穂肥を施す (🍚30)";
+        panBtn.title = "出穂20-25日前の追肥。穎花数と登熟を向上させる。収量+10%。";
+        panBtn.addEventListener("click", () => {
+          const r = window.Farm.applyPanicleDressing(field.id);
+          if (r.ok) {
+            window.Toast.show("🌾 穂肥を施した (8問GP×1.20)", "event");
+            window.Storage.scheduleSave(State.get());
+            window.UI.refreshTopbar();
+            if (window.UI) window.UI.show("farm");
+          } else if (r.reason === "no_grain") {
+            window.Toast.show("米粒が足りません (30必要)", "warn");
+          } else {
+            window.Toast.show("実施できません", "warn");
+          }
+        });
+        btnRow.appendChild(panBtn);
+      } else if (field.panicleDressed) {
+        const doneBadge = document.createElement("span");
+        doneBadge.className = "badge";
+        doneBadge.style.cssText = "background:#e8f5e9; color:#2f5d2f; padding:6px 10px;";
+        doneBadge.textContent = "✅ 穂肥済";
+        btnRow.appendChild(doneBadge);
+      }
     }
 
     // アイテム使用
@@ -273,6 +323,52 @@ window.FarmView = (function () {
         });
       });
     }, 50);
+  }
+
+  // 収穫結果モーダル (等級・収量構成要素・換算)
+  function showHarvestModal(result) {
+    if (!result || !result.grade) {
+      window.Toast.show("🍚 収穫!", "harvest");
+      if (window.UI) { window.UI.refreshTopbar(); window.UI.show("farm"); }
+      return;
+    }
+    const g = result.grade;
+    const c = result.components || {};
+    const yieldKgPer10a = Math.round((c.panicleNumber || 380) * (c.grainsPerPanicle || 75) * (c.ripeningRate || 0.88) * (c.thousandGrainWeight || 22) / 1000 / 1000 * 10 * 10) / 10;
+    const labels = (result.qualityLabels || []).filter(Boolean);
+    const html = `
+      <div style="text-align:center; padding:6px 0 12px;">
+        <div style="font-size:14px; color:#6b5a1e; margin-bottom:4px;">${result.varietyName || ""} 収穫完了</div>
+        <div style="font-size:32px; font-weight:700; color:${g.color}; padding:6px 18px; display:inline-block; border:3px solid ${g.color}; border-radius:10px; background:#fff8df;">
+          ${g.label}
+        </div>
+        <div style="font-size:11px; color:#6b5a1e; margin-top:6px;">${g.note}</div>
+      </div>
+      <div style="background:#fff8df; padding:10px 12px; border-radius:8px; font-size:12px; line-height:1.7; margin-bottom:8px;">
+        <div style="font-weight:700; color:#2f5d2f; margin-bottom:4px;">📊 収量構成要素</div>
+        <table style="width:100%; font-size:11px;">
+          <tr><td>穂数</td><td style="text-align:right; font-weight:700;">${c.panicleNumber || "-"} 本/m²</td></tr>
+          <tr><td>1穂籾数</td><td style="text-align:right; font-weight:700;">${c.grainsPerPanicle || "-"} 粒</td></tr>
+          <tr><td>登熟歩合</td><td style="text-align:right; font-weight:700;">${Math.round((c.ripeningRate || 0) * 100)}%</td></tr>
+          <tr><td>千粒重</td><td style="text-align:right; font-weight:700;">${c.thousandGrainWeight || "-"} g</td></tr>
+        </table>
+        <div style="margin-top:6px; padding-top:6px; border-top:1px dashed #cbb878; font-size:11px; color:#6b5a1e;">
+          推定収量: <strong>${yieldKgPer10a.toFixed(0)} kg/10a</strong>
+        </div>
+      </div>
+      ${labels.length > 0 ? `<div style="font-size:11px; color:#6b5a1e; margin-bottom:8px;">${labels.map(l => `<div>• ${l}</div>`).join("")}</div>` : ""}
+      <div style="text-align:center; padding:10px; background:linear-gradient(90deg,#fbbf24,#fde890,#fbbf24); border-radius:8px;">
+        <span style="font-size:14px;">獲得</span>
+        <span style="font-size:24px; font-weight:700; color:#9a3412;"> 🍚 ${result.yield}</span>
+      </div>
+    `;
+    window.Modal.open({
+      title: "🌾 収穫結果",
+      html,
+      buttons: [{ label: "ありがとう！", primary: true, onClick: () => {
+        if (window.UI) { window.UI.refreshTopbar(); window.UI.show("farm"); }
+      } }]
+    });
   }
 
   function lockCondition(field) {

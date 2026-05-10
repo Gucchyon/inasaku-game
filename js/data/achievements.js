@@ -89,7 +89,21 @@ window.ACHIEVEMENTS = [
   { id: "legendary_farmer", name: "伝説の農夫", icon: "👑", desc: "通算100回収穫。",
     condition: s => totalHarvests(s) >= 100, reward: { grain: 10000, varietyId: "senkyo" } },
   { id: "all_master", name: "全制覇", icon: "🏆", desc: "他のアチーブメントを20個以上解放。",
-    condition: s => Object.keys(s.collection.achievements || {}).length >= 20, reward: { grain: 10000, varietyId: "shinwanoine" } }
+    condition: s => Object.keys(s.collection.achievements || {}).length >= 20, reward: { grain: 10000, varietyId: "shinwanoine" } },
+
+  // === 検査等級系 (新規) ===
+  { id: "grade1_first", name: "初の1等米", icon: "🥇", desc: "1等米の収穫を達成。",
+    condition: s => (s.flags.grade_1 || 0) >= 1, reward: { grain: 200 } },
+  { id: "grade1_5", name: "1等米5回", icon: "🥇🥇", desc: "1等米を通算5回収穫。",
+    condition: s => (s.flags.grade_1 || 0) >= 5, reward: { grain: 800 } },
+  { id: "grade1_20", name: "1等米マスター", icon: "🏅", desc: "1等米を通算20回収穫。",
+    condition: s => (s.flags.grade_1 || 0) >= 20, reward: { grain: 3000 } },
+
+  // === 栽培アクション系 (新規) ===
+  { id: "midseason_first", name: "初の中干し", icon: "💧", desc: "中干しを実施して収穫まで到達。",
+    condition: s => !!s.flags.midseason_done, reward: { grain: 150 } },
+  { id: "panicle_first", name: "初の穂肥施用", icon: "🌾", desc: "穂肥を施して収穫まで到達。",
+    condition: s => !!s.flags.panicle_done, reward: { grain: 150 } }
 ];
 
 function totalHarvests(s) {

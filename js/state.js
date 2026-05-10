@@ -20,10 +20,10 @@ window.State = (function () {
         currentCombo: 0
       },
       fields: [
-        { id: 1, unlocked: true, varietyId: null, growthPoints: 0, stage: 0, plantedAt: null, activeBuffs: [], activeEvent: null, harvestCount: 0, questionsSinceEvent: 0, upgrades: {} },
-        { id: 2, unlocked: false, varietyId: null, growthPoints: 0, stage: 0, plantedAt: null, activeBuffs: [], activeEvent: null, harvestCount: 0, questionsSinceEvent: 0, upgrades: {} },
-        { id: 3, unlocked: false, varietyId: null, growthPoints: 0, stage: 0, plantedAt: null, activeBuffs: [], activeEvent: null, harvestCount: 0, questionsSinceEvent: 0, upgrades: {} },
-        { id: 4, unlocked: false, varietyId: null, growthPoints: 0, stage: 0, plantedAt: null, activeBuffs: [], activeEvent: null, harvestCount: 0, questionsSinceEvent: 0, upgrades: {} }
+        { id: 1, unlocked: true, varietyId: null, growthPoints: 0, stage: 0, plantedAt: null, activeBuffs: [], activeEvent: null, harvestCount: 0, questionsSinceEvent: 0, upgrades: {}, midSeasonDried: false, panicleDressed: false },
+        { id: 2, unlocked: false, varietyId: null, growthPoints: 0, stage: 0, plantedAt: null, activeBuffs: [], activeEvent: null, harvestCount: 0, questionsSinceEvent: 0, upgrades: {}, midSeasonDried: false, panicleDressed: false },
+        { id: 3, unlocked: false, varietyId: null, growthPoints: 0, stage: 0, plantedAt: null, activeBuffs: [], activeEvent: null, harvestCount: 0, questionsSinceEvent: 0, upgrades: {}, midSeasonDried: false, panicleDressed: false },
+        { id: 4, unlocked: false, varietyId: null, growthPoints: 0, stage: 0, plantedAt: null, activeBuffs: [], activeEvent: null, harvestCount: 0, questionsSinceEvent: 0, upgrades: {}, midSeasonDried: false, panicleDressed: false }
       ],
       activeFieldId: 1,
       upgrades: {},        // プレイヤー全体のアップグレード { id: level }

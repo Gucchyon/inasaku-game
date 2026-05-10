@@ -66,5 +66,41 @@ window.EVENTS = [
     weight: 8, desc: "雑草が栄養を奪う。GP-10/問が3問続く。",
     effect: { type: "gp_offset", value: -10, questions: 3 },
     cure: ["herbicide_basic"], prevent: ["scarecrow_ticket"],
-    overlay: "event-weeds" }
+    overlay: "event-weeds" },
+
+  // === 教科書由来の追加イベント ===
+
+  { id: "nursery_burn", name: "苗ヤケ", icon: "🥵", kind: "negative", stages: [0, 1],
+    weight: 5, desc: "育苗ハウス内の換気不足で苗が高温障害。GP×0.6が6問。換気・温度管理を。",
+    effect: { type: "gp_mult", value: 0.6, questions: 6 },
+    cure: [], prevent: ["scarecrow_ticket"],
+    overlay: "event-heat" },
+
+  { id: "rice_stripe", name: "縞葉枯病", icon: "🦗", kind: "negative", stages: [1, 2, 3],
+    weight: 4, desc: "ヒメトビウンカが媒介するウイルス病。GP×0.7、収量-15%。",
+    effect: { type: "gp_mult", value: 0.7, questions: 6, persistent: true },
+    cure: ["insecticide_basic"], prevent: ["scarecrow_ticket"],
+    overlay: "event-pest" },
+
+  { id: "lodging", name: "倒伏", icon: "🌾", kind: "negative", stages: [4, 5],
+    weight: 5, desc: "稈が折れ穂が地面に倒れる。多肥・長稈品種で多発。収量-20%、検査等級下落。",
+    effect: { type: "yield_penalty", value: 0.20, persistent: true },
+    cure: [], prevent: ["windnet", "scarecrow_ticket"],
+    overlay: "event-typhoon" },
+
+  { id: "discolored_grain", name: "着色粒発生", icon: "🟤", kind: "negative", stages: [4, 5],
+    weight: 4, desc: "刈り遅れ・カメムシ吸汁等で粒に着色。検査等級が下落。",
+    effect: { type: "quality_penalty", value: 0.20, persistent: true, qualityLabel: "着色粒混入" },
+    cure: ["insecticide_basic"], prevent: ["scarecrow_ticket"],
+    overlay: "event-pest" },
+
+  { id: "good_water", name: "水管理良好", icon: "💧", kind: "positive", stages: [2, 3, 4],
+    weight: 8, desc: "間断灌水・飽水管理が功を奏し稲が活性化。次5問のGP×1.25。",
+    effect: { type: "gp_mult", value: 1.25, questions: 5 },
+    overlay: "event-sunny" },
+
+  { id: "ideal_temperature", name: "登熟好適気温", icon: "🌡️", kind: "positive", stages: [4],
+    weight: 6, desc: "登熟期の昼夜温度差が大きく、品質向上。次5問のGP×1.20。",
+    effect: { type: "gp_mult", value: 1.20, questions: 5 },
+    overlay: "event-sunny" }
 ];
